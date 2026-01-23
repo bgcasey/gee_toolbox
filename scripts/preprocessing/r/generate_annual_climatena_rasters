@@ -1,0 +1,86 @@
+# ---
+# title: Generate Annual ClimateNA Rasters
+# author: Brendan Casey
+# created: 2025-01-17
+# inputs:
+#   - ClimateNAr package (CRAN)
+#   - DEM raster (EPSG:4326)
+# outputs:
+#   - climate variables as .tif rasters
+# notes:
+#   Generates annual ClimateNA climate rasters using the
+#   ClimateNAr package.
+# dependencies:
+#   ClimateNAr package. Download from https://register.climatena.ca/
+# ---
+
+# 1. Setup ----
+
+## 1.1 Load packages ----
+library(terra) # Raster operations
+library(ClimateNAr) # ClimateNA extraction
+
+## 1.2 Set terra options ----
+terra::terraOptions(
+    todisk = TRUE,
+    memfrac = 0.5,
+    tempdir = "D:/r_temp",
+    progress = FALSE
+)
+terra::terraOptions()
+
+## 1.3 Load DEM ----
+# ClimateNAr requires lat/lon projection (EPSG:4326)
+dem_path <- file.path(
+    "D:/temp_spatial_data",
+    "fabdem_full",
+    "fab_dem_test_100km.tif"
+)
+
+## 1.4 Create output directory ----
+output_dir <- file.path(
+    "D:/temp_spatial_data",
+    "climate_na_rasters",
+    "annual"
+)
+
+## 1.5 Define variables of interest ----
+# Variables: 'Y' = all annual, 'S' = seasonal, 'M' = monthly
+# Or specify: c('MAT','MAP','TD','AHM','SHM')
+var_list <- "YS" # All seasonal and annual variables
+
+# Define periods of interest
+period_list <- c(
+    "Year_2000.ann",
+    "Year_2005.ann",
+    "Year_2010.ann",
+    "Year_2015.ann",
+    "Year_2020.ann",
+    "Year_2024.ann"
+)
+
+# 2. Generate ClimateNA Rasters ----
+# This section (1) creates a template DEM raster for the
+# Canada + US AOI, (2) transforms it to lat/lon projection
+# required by ClimateNAr, (3) extracts climate data using
+# ClimateNAr package, and (4) transforms results back to
+# EPSG:3978 and exports as .tif files.
+
+message("Generating ClimateNA rasters...")
+
+# Run ClimateNAr
+climate_data <- ClimateNAr(
+    inputFile = dem_path,
+    periodList = period_list,
+    varList = var_list,
+    outDir = output_dir
+)
+
+message(
+    paste(
+        "Climate data extracted. Files saved to:",
+        output_dir
+    )
+)
+
+# End of script ----
