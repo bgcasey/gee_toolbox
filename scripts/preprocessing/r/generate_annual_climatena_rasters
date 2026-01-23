@@ -34,7 +34,7 @@ terra::terraOptions()
 dem_path <- file.path(
     "D:/temp_spatial_data",
     "fabdem_full",
-    "fab_dem_test_100km.tif"
+    "fab_dem_us_canada.tif"
 )
 
 ## 1.4 Create output directory ----
