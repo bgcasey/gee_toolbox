@@ -22,10 +22,9 @@ library(ClimateNAr) # ClimateNA extraction
 
 ## 1.2 Set terra options ----
 terra::terraOptions(
-    todisk = TRUE,
-    memfrac = 0.5,
-    tempdir = "D:/r_temp",
-    progress = FALSE
+    # todisk = TRUE,
+    memfrac = 0.1
+    # progress = FALSE
 )
 terra::terraOptions()
 
@@ -37,6 +36,8 @@ dem_path <- file.path(
     "fab_dem_us_canada.tif"
 )
 
+
+
 ## 1.4 Create output directory ----
 output_dir <- file.path(
     "D:/temp_spatial_data",
@@ -47,19 +48,74 @@ output_dir <- file.path(
 ## 1.5 Define variables of interest ----
 # Variables: 'Y' = all annual, 'S' = seasonal, 'M' = monthly
 # Or specify: c('MAT','MAP','TD','AHM','SHM')
-var_list <- "YS" # All seasonal and annual variables
+var_list <- "Y" # All seasonal and annual variables
 
 # Define periods of interest
-period_list <- c(
-    "Year_2000.ann",
-    "Year_2005.ann",
-    "Year_2010.ann",
-    "Year_2015.ann",
-    "Year_2020.ann",
-    "Year_2024.ann"
-)
+# period_list <- c(
+#     # "Year_2000.ann",
+#     # "Year_2005.ann",
+#     # "Year_2010.ann",
+#     # "Year_2015.ann",
+#     # "Year_2020.ann",
+#     "Year_2024.ann"
+# )
+period_list <- c("Normal_1991_2020")
 
-# 2. Generate ClimateNA Rasters ----
+
+
+# 2. Rescale DEM (optional) ----
+# Rescale to ~1km resolution while maintaining EPSG:4326
+# At equator: 1km ≈ 0.0083 degrees; resolution varies with latitude
+
+if (TRUE) {
+    message("Rescaling DEM to ~1km resolution...")
+
+    dem <- terra::rast(dem_path)
+
+    # Calculate resolution factor (aggregate every N cells to achieve ~1km)
+    # Original resolution in degrees
+    current_res <- terra::res(dem) # Get current resolution
+    message(paste("Current resolution:", round(current_res[1], 6), "degrees"))
+
+    # Target resolution in degrees (~1km at equator)
+    target_res_deg <- 0.008983
+
+    # Calculate aggregation factor
+    agg_factor <- round(target_res_deg / current_res[1])
+    agg_factor <- max(agg_factor, 1) # Ensure at least 1 (no upscaling)
+
+    message(paste("Aggregation factor:", agg_factor))
+
+    if (agg_factor > 1) {
+        # Aggregate by taking mean of cell values
+        dem <- terra::aggregate(dem, fact = agg_factor, fun = "mean")
+
+        new_res <- terra::res(dem)
+        message(paste("New resolution:", round(new_res[1], 6), "degrees (~1km)"))
+
+        # Save aggregated raster and update dem_path
+        agg_out_path <- sub("\\.tif$", "_1km.tif", dem_path)
+        terra::writeRaster(dem, agg_out_path, overwrite = TRUE)
+        dem_path <- agg_out_path
+        message(paste("Aggregated DEM saved to:", dem_path))
+
+        # Verify CRS is still EPSG:4326
+        message(paste("CRS:", terra::crs(dem, describe = TRUE)$code))
+    }
+}
+
+# 3. Convert DEM values to integer (optional) ----
+# Load and convert to integer to reduce memory usage
+if (TRUE) {
+    # dem <- terra::rast(dem_path)
+    dem <- terra::as.int(dem)
+    dem_int_path <- sub("\\.tif$", "_int.tif", dem_path)
+    terra::writeRaster(dem, dem_int_path, overwrite = TRUE)
+    dem_path <- dem_int_path
+    message(paste("DEM converted to integer and saved to:", dem_path))
+}
+
+# 4. Generate ClimateNA rasters ----
 # This section (1) creates a template DEM raster for the
 # Canada + US AOI, (2) transforms it to lat/lon projection
 # required by ClimateNAr, (3) extracts climate data using
@@ -84,3 +140,4 @@ message(
 )
 
 # End of script ----
+cna <- rast("D:/temp_spatial_data/climate_na_rasters/Normal_1991_2020/Normal_1991_2020_DD_0.tif")
