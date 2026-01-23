@@ -43,7 +43,7 @@ output_dir <- file.path(
 ## 1.5 Define variables of interest ----
 # Variables: 'Y' = all annual, 'S' = seasonal, 'M' = monthly
 # Or specify: c('MAT', 'MAP', 'TD', 'AHM', 'SHM')
-var_list <- "Y"
+var_list <- "YS"
 
 # Define periods of interest
 period_list <- c(
@@ -57,8 +57,8 @@ period_list <- c(
 )
 
 ## 1.6 Set conditional flags ----
-rescale_dem <- FALSE
-convert_to_integer <- FALSE
+rescale_dem <- TRUE
+convert_to_integer <- TRUE
 
 # 2. Rescale DEM (optional) ----
 # Rescale to ~1km resolution while maintaining EPSG:4326
@@ -145,6 +145,9 @@ if (convert_to_integer) {
         )
     )
 }
+
+rm(list = ls()[sapply(ls(), function(x) inherits(get(x), "SpatRaster"))])
+gc()
 
 # 4. Generate ClimateNA rasters ----
 message("Generating ClimateNA rasters...")
