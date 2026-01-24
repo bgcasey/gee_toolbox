@@ -28,16 +28,16 @@ terra::terraOptions()
 ## 1.3 Load DEM ----
 # ClimateNAr requires lat/lon projection (EPSG:4326)
 dem_path <- file.path(
-    "D:/temp_spatial_data",
-    "fabdem_full",
-    "fab_dem_us_canada.tif"
+  "D:/temp_spatial_data",
+  "fabdem_full",
+  "fab_dem_us_canada.tif"
 )
 
 ## 1.4 Create output directory ----
 output_dir <- file.path(
-    "D:/temp_spatial_data",
-    "climate_na_rasters",
-    "annual"
+  "D:/temp_spatial_data",
+  "climate_na_rasters",
+  "annual"
 )
 
 ## 1.5 Define variables of interest ----
@@ -47,13 +47,13 @@ var_list <- "YS"
 
 # Define periods of interest
 period_list <- c(
-    "Year_2000.ann",
-    "Year_2005.ann",
-    "Year_2010.ann",
-    "Year_2015.ann",
-    "Year_2020.ann",
-    "Year_2024.ann",
-    "Normal_1991_2020"
+  "Year_2000.ann",
+  "Year_2005.ann",
+  "Year_2010.ann",
+  "Year_2015.ann",
+  "Year_2020.ann",
+  "Year_2024.ann",
+  "Normal_1991_2020"
 )
 
 ## 1.6 Set conditional flags ----
@@ -66,84 +66,84 @@ convert_to_integer <- TRUE
 # latitude
 
 if (rescale_dem) {
-    message("Rescaling DEM to ~1km resolution...")
+  message("Rescaling DEM to ~1km resolution...")
 
-    dem <- terra::rast(dem_path)
+  dem <- terra::rast(dem_path)
 
-    # Calculate resolution factor (aggregate every N cells to
-    # achieve ~1km). Original resolution in degrees
-    current_res <- terra::res(dem)
-    message(
-        paste(
-            "Current resolution:",
-            round(current_res[1], 6),
-            "degrees"
-        )
+  # Calculate resolution factor (aggregate every N cells to
+  # achieve ~1km). Original resolution in degrees
+  current_res <- terra::res(dem)
+  message(
+    paste(
+      "Current resolution:",
+      round(current_res[1], 6),
+      "degrees"
+    )
+  )
+
+  # Target resolution in degrees (~1km at equator)
+  target_res_deg <- 0.008983
+
+  # Calculate aggregation factor
+  agg_factor <- round(target_res_deg / current_res[1])
+  agg_factor <- max(agg_factor, 1)
+
+  message(paste("Aggregation factor:", agg_factor))
+
+  if (agg_factor > 1) {
+    # Aggregate by taking mean of cell values
+    dem <- terra::aggregate(
+      dem,
+      fact = agg_factor,
+      fun = "mean"
     )
 
-    # Target resolution in degrees (~1km at equator)
-    target_res_deg <- 0.008983
+    new_res <- terra::res(dem)
+    message(
+      paste(
+        "New resolution:",
+        round(new_res[1], 6),
+        "degrees (~1km)"
+      )
+    )
 
-    # Calculate aggregation factor
-    agg_factor <- round(target_res_deg / current_res[1])
-    agg_factor <- max(agg_factor, 1)
+    # Save aggregated raster
+    agg_out_path <- sub("\\.tif$", "_1km.tif", dem_path)
+    terra::writeRaster(
+      dem,
+      agg_out_path,
+      overwrite = TRUE
+    )
+    dem_agg_path <- agg_out_path
+    message(paste("Aggregated DEM saved to:", dem_agg_path))
 
-    message(paste("Aggregation factor:", agg_factor))
-
-    if (agg_factor > 1) {
-        # Aggregate by taking mean of cell values
-        dem <- terra::aggregate(
-            dem,
-            fact = agg_factor,
-            fun = "mean"
-        )
-
-        new_res <- terra::res(dem)
-        message(
-            paste(
-                "New resolution:",
-                round(new_res[1], 6),
-                "degrees (~1km)"
-            )
-        )
-
-        # Save aggregated raster
-        agg_out_path <- sub("\\.tif$", "_1km.tif", dem_path)
-        terra::writeRaster(
-            dem,
-            agg_out_path,
-            overwrite = TRUE
-        )
-        dem_agg_path <- agg_out_path
-        message(paste("Aggregated DEM saved to:", dem_agg_path))
-
-        # Verify CRS is still EPSG:4326
-        message(
-            paste(
-                "CRS:",
-                terra::crs(dem, describe = TRUE)$code
-            )
-        )
-    }
+    # Verify CRS is still EPSG:4326
+    message(
+      paste(
+        "CRS:",
+        terra::crs(dem, describe = TRUE)$code
+      )
+    )
+  }
 }
 
 # 3. Convert DEM values to integer (optional) ----
 # Load and convert to integer to reduce memory usage
 if (convert_to_integer) {
-    if (rescale_dem) {
-        dem <- terra::as.int(dem)
-    } else {
-        dem <- terra::rast(dem_path)
-        dem <- terra::as.int(dem)
-    }
-    dem_int_path <- sub("\\.tif$", "_int.tif", dem_path)
-    terra::writeRaster(dem, dem_int_path, overwrite = TRUE)
-    message(
-        paste(
-            "DEM converted to integer and saved to:",
-            dem_int_path
-        )
+  if (rescale_dem) {
+    dem <- terra::as.int(dem)
+  } else {
+    dem <- terra::rast(dem_path)
+    dem <- terra::as.int(dem)
+  }
+  dem_int_path <- sub("\\.tif$", "_int.tif", dem_path)
+  terra::writeRaster(dem, dem_int_path, overwrite = TRUE)
+  message(
+    paste(
+      "DEM converted to integer and saved to:",
+      dem_int_path
     )
+  )
 }
 
 rm(list = ls()[sapply(ls(), function(x) inherits(get(x), "SpatRaster"))])
@@ -154,28 +154,28 @@ message("Generating ClimateNA rasters...")
 
 # Determine which DEM file to use
 if (rescale_dem && convert_to_integer) {
-    dem_path_for_climate <- dem_int_path
+  dem_path_for_climate <- dem_int_path
 } else if (rescale_dem && !convert_to_integer) {
-    dem_path_for_climate <- dem_agg_path
+  dem_path_for_climate <- dem_agg_path
 } else if (!rescale_dem && convert_to_integer) {
-    dem_path_for_climate <- dem_int_path
+  dem_path_for_climate <- dem_int_path
 } else {
-    dem_path_for_climate <- dem_path
+  dem_path_for_climate <- dem_path
 }
 
 # Run ClimateNAr
 climate_data <- ClimateNAr(
-    inputFile = dem_path_for_climate,
-    periodList = period_list,
-    varList = var_list,
-    outDir = output_dir
+  inputFile = dem_path_for_climate,
+  periodList = period_list,
+  varList = var_list,
+  outDir = output_dir
 )
 
 message(
-    paste(
-        "Climate data extracted. Files saved to:",
-        output_dir
-    )
+  paste(
+    "Climate data extracted. Files saved to:",
+    output_dir
+  )
 )
 
 # End of script ----
