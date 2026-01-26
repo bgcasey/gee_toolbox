@@ -19,7 +19,7 @@
 # 1. Setup ----
 
 ## 1.1 Load packages ----
-library(readr)
+library(tidyverse)
 library(ClimateNAr)
 library(terra)
 
@@ -73,6 +73,8 @@ period_list <- c(
 prepare_csv <- TRUE
 
 # 2. Prepare input CSV (optional) ----
+# Should be a CSV with columns ID1, ID2, lat, long, el
+
 if (prepare_csv) {
   # Load input CSV
   input_df <- read.csv(csv_path)
@@ -80,22 +82,35 @@ if (prepare_csv) {
   # Load dem
   dem <- terra::rast(dem_path)
 
-  # Ensure lat/lon columns are named correctly
+  # Ensure ID columns are named correctly
+  colnames(input_df)[which(colnames(input_df) == "site")] <- "ID1"
+  colnames(input_df)[which(colnames(input_df) == "source")] <- "ID2"
+
+  # Ensure lat/long columns are named correctly
   colnames(input_df)[which(colnames(input_df) == "latitude")] <- "lat"
-  colnames(input_df)[which(colnames(input_df) == "longitude")] <- "lon"
+  colnames(input_df)[which(colnames(input_df) == "longitude")] <- "long"
+
+  # Select only required columns
+  input_df <- input_df %>% select(c("ID1",
+                                    "ID2",
+                                    "lat",
+                                    "long",
+                                    "el")
+  ) %>%
+    distinct()
 
   # Extract elevation values from DEM if not present
-  if (!"elev" %in% colnames(input_df)) {
+  if (!"el" %in% colnames(input_df)) {
     message("Extracting elevation values from DEM...")
-    coords <- input_df[, c("lon", "lat")]
+    coords <- input_df[, c("long", "lat")]
     elev_values <- terra::extract(dem, coords)
-    input_df$elev <- elev_values[, 2]
+    input_df$el <- elev_values[, 2]
   }
 
   # Save modified CSV
   input_csv <- file.path(
-    "D:/temp_spatial_data",
-    "climate_na_values",
+    "D:/temp_data",
+    "climate_na",
     "annual",
     "climate_na_input_locations.csv"
   )
