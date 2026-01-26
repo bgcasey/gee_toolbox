@@ -59,13 +59,13 @@ if (!dir.exists(output_dir)) {
 var_list <- "YS"
 
 # Define periods of interest
+# Define start and end years
+start_year <- 1990
+end_year <- 2024
+
+# Generate period list dynamically from start and end years
 period_list <- c(
-  "Year_2000.ann",
-  "Year_2005.ann",
-  "Year_2010.ann",
-  "Year_2015.ann",
-  "Year_2020.ann",
-  "Year_2024.ann",
+  paste0("Year_", start_year:end_year, ".ann"),
   "Normal_1991_2020"
 )
 
