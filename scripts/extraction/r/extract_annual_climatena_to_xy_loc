@@ -3,13 +3,14 @@
 # author: Brendan Casey
 # created: 2025-01-17
 # inputs:
-#   - ClimateNAr package (CRAN)
 #   - CSV file with lat/lon coordinates (EPSG:4326)
+#   - DEM raster (EPSG:4326) (optional if CSV does not have
+#     elevation column)
 # outputs:
 #   - climate variables as values in a .csv table
 # notes:
-#   Generates annual ClimateNA climate values using the
-#   ClimateNAr package.
+#   Generates annual ClimateNA climate values to lat lon coordinates
+#   using the ClimateNAr package.
 # dependencies:
 #   ClimateNAr package. Download from
 #   https://register.climatena.ca/
@@ -18,23 +19,39 @@
 # 1. Setup ----
 
 ## 1.1 Load packages ----
-library(terra)
+library(readr)
 library(ClimateNAr)
+library(terra)
 
 ## 1.2 Load input CSV ----
 # ClimateNAr requires a csv with lat/lon coordinates (EPSG:4326)
-input_csv <- file.path(
+csv_path <- file.path(
+  "D:/local_projects/",
+  "invasive_species_indicator",
+  "0_data",
+  "processed",
+  "species",
+  "combined",
+  "invsp_all_2026-01-24.csv"
+)
+
+# DEM path (optional if CSV does not have elevation column)
+# ClimateNAr requires elevation data to extract climate values/
+dem_path <- file.path(
   "D:/temp_spatial_data",
   "fabdem_full",
-  "fab_dem_us_canada.csv"
+  "fab_dem_us_canada.tif"
 )
 
 ## 1.3 Create output directory ----
 output_dir <- file.path(
-  "D:/temp_spatial_data",
-  "climate_na_values",
+  "D:/temp_data",
+  "climate_na",
   "annual"
 )
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE)
+}
 
 ## 1.4 Define variables of interest ----
 # Variables: 'Y' = all annual, 'S' = seasonal, 'M' = monthly
@@ -52,7 +69,42 @@ period_list <- c(
   "Normal_1991_2020"
 )
 
-# 2. Generate ClimateNA values ----
+## 1.5 Set conditional flags ----
+prepare_csv <- TRUE
+
+# 2. Prepare input CSV (optional) ----
+if (prepare_csv) {
+  # Load input CSV
+  input_df <- read.csv(csv_path)
+
+  # Load dem
+  dem <- terra::rast(dem_path)
+
+  # Ensure lat/lon columns are named correctly
+  colnames(input_df)[which(colnames(input_df) == "latitude")] <- "lat"
+  colnames(input_df)[which(colnames(input_df) == "longitude")] <- "lon"
+
+  # Extract elevation values from DEM if not present
+  if (!"elev" %in% colnames(input_df)) {
+    message("Extracting elevation values from DEM...")
+    coords <- input_df[, c("lon", "lat")]
+    elev_values <- terra::extract(dem, coords)
+    input_df$elev <- elev_values[, 2]
+  }
+
+  # Save modified CSV
+  input_csv <- file.path(
+    "D:/temp_spatial_data",
+    "climate_na_values",
+    "annual",
+    "climate_na_input_locations.csv"
+  )
+  write.csv(input_df, input_csv, row.names = FALSE)
+} else {
+  input_csv <- csv_path
+}
+
+# 3. Generate ClimateNA values ----
 message("Generating ClimateNA values...")
 
 # Run ClimateNAr
