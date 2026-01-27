@@ -60,7 +60,7 @@ var_list <- "YS"
 
 # Define periods of interest
 # Define start and end years
-start_year <- 1990
+start_year <- 2000
 end_year <- 2024
 
 # Generate period list dynamically from start and end years
@@ -70,8 +70,14 @@ period_list <- c(
 )
 
 ## 1.5 Set conditional flags ----
-prepare_csv <- TRUE # Prepare input CSV (TRUE/FALSE)
-combine_annual_data <- TRUE # Combine annual data into single CSV (TRUE/FALSE)
+# Prepare input CSV (TRUE/FALSE)
+prepare_csv <- TRUE
+
+# Combine annual data into single CSV (TRUE/FALSE)
+combine_annual_data <- TRUE
+
+# Combine normal and annual data into single CSV (TRUE/FALSE)
+combine_normal_and_annual_data <- TRUE
 
 # 2. Prepare input CSV (optional) ----
 # Should be a CSV with columns ID1, ID2, lat, long, el
@@ -139,12 +145,12 @@ message(
   )
 )
 
-# 4.Clean and process extracted data (optional) ----
+# 4. Combine annual climate data (optional) ----
 if (combine_annual_data) {
   year_range <- start_year:end_year
 
   # Load original data with year column
-  orig <- read_csv(csv_path) %>%
+  orig <- read_csv(csv_path, show_col_types = FALSE) %>%
     rename(
       ID1 = site,
       ID2 = source,
@@ -197,6 +203,34 @@ if (combine_annual_data) {
   )
   write.csv(yearly_clean, output_file, row.names = FALSE)
   message(paste("Combined data saved to:", output_file))
+}
+
+# 5. Combine normal and annual climate data (optional) ----
+if (combine_normal_and_annual_data) {
+  # Load normal data
+  normal_file <- file.path(
+    output_dir,
+    "annualclimate_na_input_locations_Normal_1991_.csv"
+  )
+  normal_data <- read_csv(normal_file, show_col_types = FALSE) %>%
+    rename_with(~ paste0(., "_normal"), -c(ID1, ID2, lat, long, el))
+
+  # Merge with yearly data
+  final_data <- yearly_clean %>%
+    left_join(
+      normal_data,
+      by = c("ID1", "ID2", "lat", "long", "el")
+    )
+
+  # Save final combined data
+  final_output_file <- file.path(
+    output_dir,
+    "climate_na_annual_with_normal_combined.csv"
+  )
+  write.csv(final_data, final_output_file, row.names = FALSE)
+  message(paste("Final combined data with normals saved to:",
+                final_output_file)
+  )
 }
 
 # End of script ----
