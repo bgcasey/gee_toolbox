@@ -70,14 +70,15 @@ period_list <- c(
 )
 
 ## 1.5 Set conditional flags ----
-prepare_csv <- TRUE
+prepare_csv <- TRUE # Prepare input CSV (TRUE/FALSE)
+combine_annual_data <- TRUE # Combine annual data into single CSV (TRUE/FALSE)
 
 # 2. Prepare input CSV (optional) ----
 # Should be a CSV with columns ID1, ID2, lat, long, el
 
 if (prepare_csv) {
   # Load input CSV
-  input_df <- read.csv(csv_path)
+  input_df <- read_csv(csv_path)
 
   # Load dem
   dem <- terra::rast(dem_path)
@@ -85,6 +86,7 @@ if (prepare_csv) {
   # Ensure ID columns are named correctly
   colnames(input_df)[which(colnames(input_df) == "site")] <- "ID1"
   colnames(input_df)[which(colnames(input_df) == "source")] <- "ID2"
+  colnames(input_df)[which(colnames(input_df) == "year")] <- "ID3"
 
   # Ensure lat/long columns are named correctly
   colnames(input_df)[which(colnames(input_df) == "latitude")] <- "lat"
@@ -124,7 +126,7 @@ message("Generating ClimateNA values...")
 
 # Run ClimateNAr
 climate_data <- ClimateNAr(
-  inputFile = input_csv,
+  inputFile = input_csv_2,
   periodList = period_list,
   varList = var_list,
   outDir = output_dir
@@ -136,5 +138,65 @@ message(
     output_dir
   )
 )
+
+# 4.Clean and process extracted data (optional) ----
+if (combine_annual_data) {
+  year_range <- start_year:end_year
+
+  # Load original data with year column
+  orig <- read_csv(csv_path) %>%
+    rename(
+      ID1 = site,
+      ID2 = source,
+      lat = latitude,
+      long = longitude
+    ) %>%
+    select(ID1, ID2, year, lat, long) %>%
+    distinct()
+
+  yearly_clean <- map(year_range, function(yr) {
+    message(paste("Processing year", yr))
+    f <- file.path(
+      output_dir,
+      sprintf(
+        "annualclimate_na_input_locations_Year_%s.csv",
+        yr
+      )
+    )
+    if (!file.exists(f)) {
+      warning(
+        "Missing file for year ",
+        yr,
+        ": ",
+        f
+      )
+      return(NULL)
+    }
+    read_csv(f, show_col_types = FALSE) %>%
+      left_join(
+        orig %>% select(ID1, ID2, year, lat, long),
+        by = c("ID1", "ID2", "lat", "long")
+      ) %>%
+      dplyr::select(
+        ID1,
+        ID2,
+        year,
+        lat,
+        long,
+        el,
+        everything()
+      ) %>%
+      filter(year == yr)
+  }) %>%
+    list_rbind()
+
+  # Save combined data
+  output_file <- file.path(
+    output_dir,
+    "climate_na_annual_combined.csv"
+  )
+  write.csv(yearly_clean, output_file, row.names = FALSE)
+  message(paste("Combined data saved to:", output_file))
+}
 
 # End of script ----
