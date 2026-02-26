@@ -15,7 +15,7 @@
  * @param {ee.Geometry} aoi - Area of interest for TWI calculation.
  * @return {ee.Image} The calculated TWI image.
  */
- 
+
 function calculateTWI(aoi) {
   // Load upslope area, clip to AOI, select 'upa' band
   var upslopeArea = ee.Image("MERIT/Hydro/v1_0_1")
