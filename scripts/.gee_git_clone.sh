@@ -53,8 +53,8 @@ clone_gee_project() {
 }
 
 # set directory to clone GEE git into (should be empty)
-cd Z:/1_projects/geospatial_preprocessing_and_extraction_toolkit/scripts/preprocessing/gee
+cd "$(git rev-parse --show-toplevel)/scripts"
 
 # clone PIWO and functions projects
-clone_gee_project "https://earthengine.googlesource.com/users/bgcasey/science_centre" true true
+clone_gee_project "https://earthengine.googlesource.com/users/bgcasey/science_centre_dev" true true
 
