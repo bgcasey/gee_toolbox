@@ -872,4 +872,89 @@ function exportStatsToCSV(statsCollection, fileName) {
 exports.exportStatsToCSV = exportStatsToCSV;
 
 
+/**
+ * focalStats
+ *
+ * Applies a focal mean operation to an input ee.Image using a
+ * specified kernel size (meters). The resulting bands are
+ * renamed to reflect the kernel size. Optionally copies
+ * specified properties from the original image.
+ *
+ * @param {ee.Image} image - The input image to which focal mean
+ *   is applied.
+ * @param {number} kernelSize - The radius of the circular kernel
+ *   (in meters).
+ * @param {string} shape - The kernel shape (e.g., "circle" or
+ *   "square").
+ * @param {Array<string>} propertiesToCopy - An array of property
+ *   names to copy from the original image.
+ * @return {ee.Image} The processed image with focal-mean bands
+ *   renamed to include the kernel size, plus copied properties.
+ *
+ * @example
+ * // Example usage of the function
+ * var image = ee.Image(
+ *   'LANDSAT/LC08/C02/T1_RT_TOA/LC08_044034_20140318'
+ * );
+ * // Apply the focal stats with a 500-meter circular kernel,
+ * // copying the "system:time_start" property.
+ * var result = focalStats(
+ *   image,
+ *   500,
+ *   "circle",
+ *   ["system:time_start"]
+ * );
+ * print(result);
+ */
+exports.focalStats = function functionName(
+  image,
+  kernelSize,
+  shape,
+  propertiesToCopy
+) {
+  // If propertiesToCopy is undefined or null, assign a default array.
+  if (!propertiesToCopy) {
+    propertiesToCopy = ["system:time_start"];
+  }
+  
+  // Step 1: Perform the focal mean operation using
+  // the specified kernel size and shape.
+  var step1Result = image.reduceNeighborhood({
+    reducer: ee.Reducer.mean(),
+    kernel: ee.Kernel[shape](
+      kernelSize,
+      'meters'
+    )
+  });
+  
+  // Step 2: Retrieve the band names of the
+  // focal-reduced image.
+  var step2Result = step1Result.bandNames();
+  
+  // Step 3: Create a function to append the
+  // kernel size to each band name.
+  var step3Function = function(bandName) {
+    return ee.String(bandName)
+      .cat('_')
+      .cat(
+        ee.Number(kernelSize)
+          .format()
+      );
+  };
+  
+  // Step 4: Rename the focal image bands with
+  // the new band names that include the kernel size.
+  var step4Result = step2Result.map(step3Function);
+  var step4Image = step1Result.rename(step4Result);
+  
+  // Step 5: Copy relevant properties from
+  // the original image and return the final image.
+  var finalResult = step4Image.copyProperties(
+    image,
+    propertiesToCopy
+  );
+  
+  return finalResult;
+};
+
 
