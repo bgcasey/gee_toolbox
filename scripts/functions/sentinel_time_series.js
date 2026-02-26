@@ -47,9 +47,9 @@ exports.s2_fn = function(dates, interval, intervalType, aoi, selectedIndices) {
    */
   var s2_ts = function(d1) {
     var start = ee.Date(d1);
-    var minStartDate = ee.Date('2019-05-01');
+    var minStartDate = ee.Date('2019-06-01');
     
-    // Adjust start date if it is before 05/01/2019
+    // Adjust start date if it is before 06/01/2019
     start = ee.Date(ee.Algorithms.If(start.millis().lt(minStartDate.millis()), minStartDate, start));
     
     var end = start.advance(interval, intervalType);
