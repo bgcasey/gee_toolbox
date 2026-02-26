@@ -53,21 +53,24 @@ var aspect = ee.Terrain.aspect(dem).rename('aspect');
 // 2.3 Northness Calculation
 var northness = aspect
   .multiply(Math.PI).divide(180) // Convert degrees to radians
-  .cos().rename('northness');
+  .cos().rename('northness')
+  .toFloat(); // Convert the to float
 
 // 2.4 Eastness Calculation
 var eastness = aspect
   .multiply(Math.PI).divide(180) // Convert degrees to radians
-  .sin().rename('eastness');
-
+  .sin().rename('eastness')
+  .toFloat(); // Convert the to float
 
 /* 3. Combine Terrain Metrics */
-
 // Add slope, aspect, and northness bands to the DEM
 var terrain = dem
   .addBands(slope.rename('slope'))
   .addBands(northness)
   .addBands(aspect.rename('aspect'));
+
+print("Band Names", terrain.bandNames()); 
+print("Band Types", terrain.bandTypes());
 
 // Print the final terrain image
 print("Terrain Metrics", terrain);
