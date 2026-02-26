@@ -18,9 +18,9 @@ clone_gee_project() {
   move_files=${2:-false}
   delete_dir=${3:-false}
 
-  # Extract the project name from the URL using the 'basename' 
-  # command.
-  project=$(basename "$url")
+  # Extract the project name from the URL, handling trailing slashes.
+  project=${url%/}
+  project=${project##*/}
   
   # Remove the existing directory if it exists.
   rm -rf "$project"
@@ -28,7 +28,11 @@ clone_gee_project() {
 
   # Clone the project from the provided URL.
   git clone "$url"
-  echo "GIT CLONE EXIT CODE: $?"
+  clone_exit=$?
+  echo "GIT CLONE EXIT CODE: $clone_exit"
+  if [ $clone_exit -ne 0 ]; then
+    return $clone_exit
+  fi
   
   # Remove the .git directory.
   rm -rf "$project/.git"
@@ -42,13 +46,20 @@ clone_gee_project() {
   # same name exists in the destination, it is replaced without 
   # prompting.
   if [ "$move_files" = true ]; then
-    mv -vf "$project"/* .
+    # Replace existing destinations so updates (e.g. functions/) are applied.
+    shopt -s dotglob nullglob
+    for item in "$project"/*; do
+      base=$(basename "$item")
+      rm -rf "./$base"
+      mv -vf "$item" .
+    done
+    shopt -u dotglob nullglob
   fi
 
   # If the third argument is true, delete the cloned project 
   # directory.
   if [ "$delete_dir" = true ]; then
-    rm -r "$project"
+    rm -rf "$project"
   fi
 }
 
