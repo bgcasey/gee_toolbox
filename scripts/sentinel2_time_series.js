@@ -24,18 +24,18 @@ var sentinelIndicesAndMasks = require(
 );
 
 /* Define area of interest (AOI) */
-var aoi = ee.FeatureCollection('FAO/GAUL_SIMPLIFIED_500m/2015/level1')
-  .filter(ee.Filter.eq('ADM0_NAME', 'Canada'))
-  .filter(ee.Filter.eq('ADM1_NAME', 'Alberta'))
-  .geometry();
+// var aoi = ee.FeatureCollection('FAO/GAUL_SIMPLIFIED_500m/2015/level1')
+//   .filter(ee.Filter.eq('ADM0_NAME', 'Canada'))
+//   .filter(ee.Filter.eq('ADM1_NAME', 'Alberta'))
+//   .geometry();
 
 /* Small aoi for testing purposes */
-// var aoi = ee.Geometry.Polygon([
-//   [-113.5, 55.5],  // Top-left corner
-//   [-113.5, 55.0],  // Bottom-left corner
-//   [-112.8, 55.0],  // Bottom-right corner
-//   [-112.8, 55.5]   // Top-right corner
-// ]);
+var aoi = ee.Geometry.Polygon([
+  [-113.5, 55.5],  // Top-left corner
+  [-113.5, 55.0],  // Bottom-left corner
+  [-112.8, 55.0],  // Bottom-right corner
+  [-112.8, 55.5]   // Top-right corner
+]);
 
 /* Create a date list 
  * The date list specifies the starting points for time 
@@ -54,17 +54,17 @@ var aoi = ee.FeatureCollection('FAO/GAUL_SIMPLIFIED_500m/2015/level1')
  * batches. Comment out the unused time periods.  
  */
  
-var dateList = utils.createDateList(
-  ee.Date('2019-06-01'), ee.Date('2020-06-01'), 1, 'years'
-);
+// var dateList = utils.createDateList(
+//   ee.Date('2019-06-01'), ee.Date('2020-06-01'), 1, 'years'
+// );
 
 // var dateList = utils.createDateList(
 //   ee.Date('2021-06-01'), ee.Date('2022-06-01'), 1, 'years'
 // );
 
-// var dateList = utils.createDateList(
-//   ee.Date('2023-06-01'), ee.Date('2024-06-01'), 1, 'years'
-// );
+var dateList = utils.createDateList(
+  ee.Date('2023-06-01'), ee.Date('2024-06-01'), 1, 'years'
+);
 
 print("Start Dates", dateList);
 
@@ -108,65 +108,65 @@ var s2 = sentinelTimeSeries.s2_fn(
     return image.toFloat();
   });
 
-// print('Sentinel-2 Time Series:', s2);
+print('Sentinel-2 Time Series:', s2);
 
 /* 3. Check Calculated Bands
  * Review to make sure calculations and indices appear correct.
  */
 
-// /* 3.1 Check band summary statistics
-// * For each band calculate the min, max, and 
-// * standard deviation of pixel values and print to console.
-// * Check for values outside the expected range.
-// */
+/* 3.1 Check band summary statistics
+* For each band calculate the min, max, and 
+* standard deviation of pixel values and print to console.
+* Check for values outside the expected range.
+*/
 
-// // Extract the first image in the time series
-// var image_first = s2.first();
+// Extract the first image in the time series
+var image_first = s2.first();
 
-// // Calculate summary statistics for the first image
-// var stats_first = image_first.reduceRegion({
-//   reducer: ee.Reducer.min()
-//     .combine(ee.Reducer.max(), '', true)
-//     .combine(ee.Reducer.stdDev(), '', true),
-//   geometry: aoi,
-//   scale: 1000,
-//   bestEffort: true,
-//   maxPixels: 1e13
-// });
-// print('Summary Statistics for First Image:', stats_first);
+// Calculate summary statistics for the first image
+var stats_first = image_first.reduceRegion({
+  reducer: ee.Reducer.min()
+    .combine(ee.Reducer.max(), '', true)
+    .combine(ee.Reducer.stdDev(), '', true),
+  geometry: aoi,
+  scale: 1000,
+  bestEffort: true,
+  maxPixels: 1e13
+});
+print('Summary Statistics for First Image:', stats_first);
 
-// /* 3.2 Check Band Data Types
-// * Bands need to be the same data type to export multiband rasters.
-// */
-// print("Band Names", image_first.bandNames()); 
-// print("Band Types", image_first.bandTypes());
+/* 3.2 Check Band Data Types
+* Bands need to be the same data type to export multiband rasters.
+*/
+print("Band Names", image_first.bandNames()); 
+print("Band Types", image_first.bandTypes());
 
-// /* 3.3 Plot NDVI
-// * Visualize the NDVI for the first time step by adding it to the map.
-// * Set visualization parameters to highlight vegetation health.
-// */
+/* 3.3 Plot NDVI
+* Visualize the NDVI for the first time step by adding it to the map.
+* Set visualization parameters to highlight vegetation health.
+*/
 
-// // Define visualization parameters for NDVI
-// var ndviVisParams = {
-//   min: -0.1, // Lower limit for NDVI values
-//   max: 1.0,  // Upper limit for NDVI values
-//   palette: ['blue', 'white', 'green'] // Color palette
-// };
+// Define visualization parameters for NDVI
+var ndviVisParams = {
+  min: -0.1, // Lower limit for NDVI values
+  max: 1.0,  // Upper limit for NDVI values
+  palette: ['blue', 'white', 'green'] // Color palette
+};
 
-// // Extract the NDVI band from the first image
-// var ndvi_first = image_first.select('NDVI');
+// Extract the NDVI band from the first image
+var ndvi_first = image_first.select('NDVI');
 
-// // Reduce resolution for visualization
-// var ndvi_firstLowRes = ndvi_first.reproject({
-//   crs: ndvi_first.projection(),
-//   scale: 100
-// });
+// Reduce resolution for visualization
+var ndvi_firstLowRes = ndvi_first.reproject({
+  crs: ndvi_first.projection(),
+  scale: 100
+});
 
-// // Center the map on the area of interest (AOI)
-// Map.centerObject(aoi, 9);
+// Center the map on the area of interest (AOI)
+Map.centerObject(aoi, 9);
 
-// // Add the low-resolution NDVI layer to the map
-// Map.addLayer(ndvi_firstLowRes, ndviVisParams, 'NDVI (Low Res)');
+// Add the low-resolution NDVI layer to the map
+Map.addLayer(ndvi_firstLowRes, ndviVisParams, 'NDVI (Low Res)');
 
 /* 4. Export Sentinel-2 Time Series to Google Drive */
 var folder = 'gee_exports';
